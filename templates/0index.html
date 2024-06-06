@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <style>
+        #tvchart {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+    </style>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TV Indicators</title>
+</head>
+
+<body>
+    <div id="tvchart"></div>
+    <script src="{{ url_for('static', filename='tv.js') }}"></script>
+
+
+
+    </script>
+    
+    <script>
+const {
+    log,
+    error
+} = console;
+
+const getData = async () => {
+    const resp = await fetch('http://127.0.0.1:5001/stream');
+    const data = await resp.json();
+    return data;
+};
+
+const renderChart = async () => {
+    const chartProperties = {
+        timeScale: {
+            timeVisible: true,
+            secondsVisible: true,
+        },
+    };
+
+    const domElement = document.getElementById('tvchart');
+    const chart = LightweightCharts.createChart(domElement, chartProperties);
+    const candleseries = chart.addCandlestickSeries();
+
+
+    const sma_200_series = chart.addLineSeries({
+        color: 'blue',
+        lineWidth: 2
+    });
+    const sma_50_series = chart.addLineSeries({
+        color: 'black',
+        lineWidth: 1
+    });
+    const sma_24_series = chart.addLineSeries({
+        color: 'red',
+        lineWidth: 1
+    });
+    const sma_12_series = chart.addLineSeries({
+        color: 'yellow',
+        lineWidth: 1
+    });
+
+
+    const rsi_series = chart.addLineSeries({
+        color: 'purple',
+        lineWidth: 1,
+        pane: 1,
+    });
+
+    const macd_fast_series = chart.addLineSeries({
+        color: 'blue',
+        lineWidth: 1,
+        pane: 2,
+    });
+    const macd_slow_series = chart.addLineSeries({
+        color: 'red',
+        lineWidth: 1,
+        pane: 2,
+    });
+    const macd_histogram_series = chart.addHistogramSeries({
+        pane: 2,
+    });
+
+    let markers = []; // Array to store markers
+
+    setInterval(async () => {
+        const data = await getData();
+        console.log(data);
+
+
+
+
+
+        // Update candlestick series with new data
+        candleseries.update({
+            time: data.time,
+            open: data.open,
+            high: data.high,
+            low: data.low,
+            close: data.close
+        });
+
+        // Update each series with new data
+        sma_200_series.update({
+            time: data.time,
+            value: data.sma_200
+        });
+        // Update each series with new data
+        sma_50_series.update({
+            time: data.time,
+            value: data.sma_50
+        });
+        // Update each series with new data
+        sma_24_series.update({
+            time: data.time,
+            value: data.sma_24
+        });
+        // Update each series with new data
+        sma_12_series.update({
+            time: data.time,
+            value: data.sma_12
+        });
+
+
+        rsi_series.update({
+            time: data.time,
+            value: data.rsi
+        });
+
+        
+        macd_fast_series.update({
+            time: data.time,
+            value: data.macd_fast
+        });
+        macd_slow_series.update({
+            time: data.time,
+            value: data.macd_slow
+        });
+        macd_histogram_series.update({
+            time: data.time,
+            value: data.macd_histogram,
+            color: data.macd_histogram > 0 ? 'green' : 'red'
+        });
+
+        // Marker logic (adapt based on your signal generation)
+        if (data.signal === '1') { // Assuming '1' represents a sell signal
+            markers.push({
+                time: data.time,
+                position: 'aboveBar',
+                color: 'red',
+                shape: 'arrowDown',
+                text: 'SELL'
+            });
+        } else if (data.signal === '2') { // Assuming '2' represents a buy signal
+            markers.push({
+                time: data.time,
+                position: 'belowBar',
+                color: 'green',
+                shape: 'arrowUp',
+                text: 'BUY'
+            });
+        }
+
+        candleseries.setMarkers(markers); // Set all markers
+    }, 1000); // Fetch data every 1 second
+};
+
+renderChart();
+
+
+    </script>
+</body>
+
+</html>
